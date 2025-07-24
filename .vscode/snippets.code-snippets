@@ -1,0 +1,125 @@
+{
+  "React Functional Component": {
+    "prefix": "rfc",
+    "body": [
+      "interface ${1:ComponentName}Props {",
+      "  $2",
+      "}",
+      "",
+      "export function ${1:ComponentName}({ $3 }: ${1:ComponentName}Props) {",
+      "  return (",
+      "    <div>",
+      "      $4",
+      "    </div>",
+      "  )",
+      "}"
+    ],
+    "description": "Create a React functional component with TypeScript"
+  },
+  "React Hook": {
+    "prefix": "rhook",
+    "body": [
+      "import { useState, useEffect } from 'react'",
+      "",
+      "export function use${1:HookName}($2) {",
+      "  const [state, setState] = useState($3)",
+      "",
+      "  useEffect(() => {",
+      "    $4",
+      "  }, [])",
+      "",
+      "  return { state, setState }",
+      "}"
+    ],
+    "description": "Create a custom React hook"
+  },
+  "TypeScript Interface": {
+    "prefix": "tsi",
+    "body": [
+      "interface ${1:InterfaceName} {",
+      "  $2",
+      "}"
+    ],
+    "description": "Create a TypeScript interface"
+  },
+  "TypeScript Type": {
+    "prefix": "tst",
+    "body": [
+      "type ${1:TypeName} = $2"
+    ],
+    "description": "Create a TypeScript type"
+  },
+  "Test Describe Block": {
+    "prefix": "desc",
+    "body": [
+      "describe('${1:description}', () => {",
+      "  $2",
+      "})"
+    ],
+    "description": "Create a test describe block"
+  },
+  "Test It Block": {
+    "prefix": "it",
+    "body": [
+      "it('${1:should do something}', () => {",
+      "  $2",
+      "})"
+    ],
+    "description": "Create a test it block"
+  },
+  "Console Log": {
+    "prefix": "cl",
+    "body": [
+      "console.log('$1', $1)"
+    ],
+    "description": "Console log with label"
+  },
+  "Import React": {
+    "prefix": "imr",
+    "body": [
+      "import React from 'react'"
+    ],
+    "description": "Import React"
+  },
+  "Import useState": {
+    "prefix": "imus",
+    "body": [
+      "import { useState } from 'react'"
+    ],
+    "description": "Import useState hook"
+  },
+  "Import useEffect": {
+    "prefix": "imue",
+    "body": [
+      "import { useEffect } from 'react'"
+    ],
+    "description": "Import useEffect hook"
+  },
+  "Tailwind Container": {
+    "prefix": "twc",
+    "body": [
+      "<div className=\"container mx-auto px-4 sm:px-6 lg:px-8\">",
+      "  $1",
+      "</div>"
+    ],
+    "description": "Tailwind container div"
+  },
+  "Tailwind Card": {
+    "prefix": "twcard",
+    "body": [
+      "<div className=\"bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6\">",
+      "  $1",
+      "</div>"
+    ],
+    "description": "Tailwind card component"
+  },
+  "Tailwind Button": {
+    "prefix": "twbtn",
+    "body": [
+      "<button className=\"inline-flex items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed\">",
+      "  $1",
+      "</button>"
+    ],
+    "description": "Tailwind button component"
+  }
+}
