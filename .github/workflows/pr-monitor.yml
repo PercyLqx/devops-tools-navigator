@@ -1,0 +1,94 @@
+name: PR 流水线监控系统
+
+on:
+  # 定期检查 PR 状态 (每 5 分钟)
+  schedule:
+    - cron: '*/5 * * * *'
+  
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      force_check:
+        description: '强制检查所有 PR'
+        required: false
+        default: 'false'
+  
+  # PR 事件触发
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  
+  # 工作流完成事件
+  workflow_run:
+    workflows: ["React + Vite CI/CD Pipeline"]
+    types: [completed]
+
+concurrency:
+  group: pr-monitor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  monitor-prs:
+    name: 监控 PR 流水线状态
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: 🛒 检出代码
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+
+    - name: ⚡ 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: 📦 安装依赖
+      run: |
+        npm install @actions/core @actions/github axios
+
+    - name: 🔍 执行 PR 状态监控
+      id: monitor
+      run: node .github/scripts/pr-monitor.js
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPOSITORY: ${{ github.repository }}
+        FORCE_CHECK: ${{ github.event.inputs.force_check || 'false' }}
+        
+    - name: 📊 输出监控结果
+      run: |
+        echo "🎯 PR 监控完成"
+        echo "检查的 PR 数量: ${{ steps.monitor.outputs.checked_prs }}"
+        echo "失败的流水线: ${{ steps.monitor.outputs.failed_pipelines }}"
+        echo "成功的流水线: ${{ steps.monitor.outputs.successful_pipelines }}"
+        echo "创建的 Issue: ${{ steps.monitor.outputs.created_issues }}"
+        echo "关闭的 Issue: ${{ steps.monitor.outputs.closed_issues }}"
+
+  # 清理过期数据
+  cleanup:
+    name: 清理过期监控数据
+    runs-on: ubuntu-latest
+    needs: monitor-prs
+    if: always() && (github.event_name == 'schedule' || github.event.inputs.force_check == 'true')
+    
+    steps:
+    - name: 🛒 检出代码
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: ⚡ 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: 📦 安装依赖
+      run: |
+        npm install @actions/core @actions/github
+
+    - name: 🧹 清理过期数据
+      run: node .github/scripts/cleanup-monitor-data.js
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPOSITORY: ${{ github.repository }}
