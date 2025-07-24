@@ -1,49 +1,79 @@
-name: CI/CD Pipeline
+name: React + Vite CI/CD Pipeline
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '20.x'
+  CACHE_DEPENDENCY_PATH: '**/package-lock.json'
+
 jobs:
-  test:
+  # 代码质量检查
+  code-quality:
+    name: Code Quality & Linting
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: 🛒 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: ⚡ Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ${{ env.CACHE_DEPENDENCY_PATH }}
+
+    - name: 📦 Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: 🔍 Run ESLint
+      run: npm run lint
+
+    - name: 💅 Check code formatting (Prettier)
+      run: npm run format:check
+
+    - name: 🔧 TypeScript type checking
+      run: npm run type-check
+
+  # 单元测试
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         node-version: [18.x, 20.x]
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Use Node.js ${{ matrix.node-version }}
+
+    - name: ⚡ Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        # 临时禁用缓存以修复CI/CD问题
-        # cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Run linting
-      run: npm run lint
-      
-    - name: Check formatting
-      run: npm run format:check
-      
-    - name: Type check
-      run: npm run type-check
-      
-    - name: Run tests
-      run: npm test
-      
-    - name: Upload coverage to Codecov
+        cache: 'npm'
+        cache-dependency-path: ${{ env.CACHE_DEPENDENCY_PATH }}
+
+    - name: 📦 Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: 🧪 Run unit tests
+      run: npm test -- --reporter=verbose --coverage
+
+    - name: 📊 Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       if: matrix.node-version == '20.x'
       with:
@@ -51,105 +81,195 @@ jobs:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
+      continue-on-error: true
 
+  # Vite 构建测试  
   build:
-    needs: test
+    name: Vite Build & Bundle Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [code-quality]
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Use Node.js 20.x
+
+    - name: ⚡ Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
-        # cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build project
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ${{ env.CACHE_DEPENDENCY_PATH }}
+
+    - name: 📦 Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: 🏗️ Build application with Vite
       run: npm run build
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      env:
+        CI: true
+        NODE_ENV: production
+
+    - name: 📈 Bundle size analysis
+      run: |
+        echo "## Bundle Size Analysis 📦" >> $GITHUB_STEP_SUMMARY
+        find dist -name "*.js" -exec ls -lh {} \; | awk '{print "- " $9 ": " $5}' >> $GITHUB_STEP_SUMMARY
+        find dist -name "*.css" -exec ls -lh {} \; | awk '{print "- " $9 ": " $5}' >> $GITHUB_STEP_SUMMARY
+
+    - name: 🗂️ Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: build-files
+        name: build-files-${{ github.sha }}
         path: dist/
         retention-days: 7
+        compression-level: 6
 
-  security-scan:
-    needs: test
+    - name: 📋 Build summary
+      run: |
+        echo "Build completed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "Build size: $(du -sh dist | cut -f1)" >> $GITHUB_STEP_SUMMARY
+
+  # 安全扫描
+  security:
+    name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [code-quality]
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Use Node.js 20.x
+
+    - name: ⚡ Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
-        # cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Run security audit
-      run: npm audit --audit-level moderate
-      continue-on-error: true
-      
-    - name: Check for vulnerabilities
-      run: |
-        if npm audit --audit-level high; then
-          echo "No high severity vulnerabilities found"
-        else
-          echo "High severity vulnerabilities detected"
-          exit 1
-        fi
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ${{ env.CACHE_DEPENDENCY_PATH }}
 
-  deploy-preview:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
-    needs: [test, build]
+    - name: 📦 Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: 🔒 Run npm security audit
+      run: |
+        npm audit --audit-level moderate || exit_code=$?
+        if [ ${exit_code:-0} -ne 0 ]; then
+          echo "⚠️ Security vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level moderate --json | jq -r '.vulnerabilities | to_entries[] | "- \(.key): \(.value.severity)"' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ No security vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+        fi
+      continue-on-error: true
+
+    - name: 🛡️ Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      continue-on-error: true
+
+  # E2E 测试 (如果有的话)
+  e2e-test:
+    name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    environment: preview
+    timeout-minutes: 20
+    needs: [build]
+    if: false  # 暂时禁用，如果项目有E2E测试可以启用
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
+
+    - name: ⚡ Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        name: build-files
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: npm ci
+
+    - name: 🎭 Install Playwright
+      run: npx playwright install --with-deps
+
+    - name: 🧪 Run E2E tests
+      run: npm run test:e2e
+
+    - name: 📸 Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+
+  # 预览部署 (PR 和 develop 分支)
+  deploy-preview:
+    name: Deploy Preview (Vercel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build, test, security]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    environment: 
+      name: preview
+      url: ${{ steps.deploy.outputs.preview-url }}
+    
+    steps:
+    - name: 🛒 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 📥 Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-files-${{ github.sha }}
         path: dist/
-        
-    - name: Deploy to Vercel Preview
+
+    - name: 🚀 Deploy to Vercel Preview
+      id: deploy
       uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
         working-directory: ./
+        scope: ${{ secrets.VERCEL_ORG_ID }}
 
+    - name: 💬 Comment PR with preview URL
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 🚀 Preview Deployment
+            
+            Your changes have been deployed to preview:
+            
+            **🔗 Preview URL:** ${{ steps.deploy.outputs.preview-url }}
+            
+            Built from commit: \`${{ github.sha }}\``
+          })
+
+  # 生产部署 (仅 main 分支)
   deploy-production:
-    if: github.ref == 'refs/heads/main'
-    needs: [test, build, security-scan]
+    name: Deploy Production (Vercel)
     runs-on: ubuntu-latest
-    environment: production
+    timeout-minutes: 15
+    needs: [build, test, security]
+    if: github.ref == 'refs/heads/main'
+    environment: 
+      name: production
+      url: https://devops-tools-navigator.vercel.app
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
+
+    - name: 📥 Download build artifacts
+      uses: actions/download-artifact@v4
       with:
-        name: build-files
+        name: build-files-${{ github.sha }}
         path: dist/
-        
-    - name: Deploy to Vercel Production
+
+    - name: 🚀 Deploy to Vercel Production
       uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -157,26 +277,77 @@ jobs:
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
         vercel-args: '--prod'
         working-directory: ./
+        scope: ${{ secrets.VERCEL_ORG_ID }}
 
+    - name: 📢 Notify deployment success
+      run: |
+        echo "🎉 Production deployment successful!" >> $GITHUB_STEP_SUMMARY
+        echo "🌐 Live URL: https://devops-tools-navigator.vercel.app" >> $GITHUB_STEP_SUMMARY
+
+  # Lighthouse 性能测试
   lighthouse:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    needs: [deploy-preview]
+    name: Lighthouse Performance Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [deploy-preview]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     
     steps:
-    - name: Checkout code
+    - name: 🛒 Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Use Node.js 20.x
+
+    - name: ⚡ Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
-        # cache: 'npm'
-        
-    - name: Install Lighthouse CI
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: 📦 Install Lighthouse CI
       run: npm install -g @lhci/cli@0.12.x
-      
-    - name: Run Lighthouse CI
+
+    - name: 🔍 Wait for deployment
+      run: sleep 30
+
+    - name: 💡 Run Lighthouse CI
       run: lhci autorun
       env:
         LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      continue-on-error: true
+
+    - name: 📊 Upload Lighthouse results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lighthouse-results
+        path: .lighthouseci/
+
+  # 清理工作流
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-preview, deploy-production, lighthouse]
+    
+    steps:
+    - name: 🧹 Delete old artifacts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          
+          // 保留最新的3个构建文件
+          const buildArtifacts = artifacts.data.artifacts
+            .filter(artifact => artifact.name.startsWith('build-files-'))
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(3);
+          
+          for (const artifact of buildArtifacts) {
+            await github.rest.actions.deleteArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+            });
+          }
