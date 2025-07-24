@@ -1,0 +1,203 @@
+import { Tool } from '@/types'
+
+export const allTools: Tool[] = [
+  // CI/CD Tools
+  {
+    id: 'jenkins',
+    name: 'Jenkins',
+    description: '开源的自动化服务器，支持持续集成和持续部署',
+    longDescription: 'Jenkins 是一个开源的、可扩展的持续集成服务器。它是用 Java 编写的，可以跨平台运行。Jenkins 通过丰富的插件生态系统支持各种工具和技术。',
+    category: 'CI/CD',
+    type: 'Open Source',
+    icon: '🤖',
+    website: 'https://www.jenkins.io/',
+    github: 'https://github.com/jenkinsci/jenkins',
+    documentation: 'https://www.jenkins.io/doc/',
+    license: 'MIT',
+    language: 'Java',
+    tags: ['CI/CD', '自动化', '构建', '部署'],
+    features: [
+      '丰富的插件生态系统',
+      '分布式构建',
+      '可视化管道编辑器',
+      '多种 SCM 支持',
+      'REST API 和 CLI '
+    ],
+    isPopular: true,
+    stars: 22.5,
+    forks: 8.6,
+    contributors: 1000,
+    createdAt: '2011-02-02',
+    updatedAt: '2024-01-15'
+  },
+  {
+    id: 'github-actions',
+    name: 'GitHub Actions',
+    description: 'GitHub 原生的 CI/CD 平台，无缝集成到 GitHub 工作流',
+    longDescription: 'GitHub Actions 使您可以直接在 GitHub 仓库中自动化、自定义和执行软件开发工作流。您可以发现、创建和共享操作来执行您喜欢的任何作业，包括 CI/CD。',
+    category: 'CI/CD',
+    type: 'SaaS',
+    icon: '⚙️',
+    website: 'https://github.com/features/actions',
+    documentation: 'https://docs.github.com/en/actions',
+    tags: ['CI/CD', 'GitHub', '自动化', '工作流'],
+    features: [
+      '与 GitHub 的深度集成',
+      '在任何平台上构建、测试和部署',
+      '矩阵构建',
+      '实时日志和部署状态',
+      '社区操作市场'
+    ],
+    isPopular: true,
+    stars: 4.2,
+    contributors: 450,
+    updatedAt: '2024-01-20'
+  },
+  {
+    id: 'gitlab-ci',
+    name: 'GitLab CI/CD',
+    description: 'GitLab 内置的 CI/CD 功能，支持从代码到部署的全流程',
+    category: 'CI/CD',
+    type: 'Freemium',
+    icon: '🦊',
+    website: 'https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/',
+    documentation: 'https://docs.gitlab.com/ee/ci/',
+    tags: ['CI/CD', 'GitLab', 'DevOps', '全流程'],
+    isPopular: true,
+    stars: 23.8,
+    updatedAt: '2024-01-18'
+  },
+  
+  // Container Tools
+  {
+    id: 'docker',
+    name: 'Docker',
+    description: '平台，用于开发、交付和运行应用程序',
+    longDescription: 'Docker 是一个开放源代码的应用容器引擎，让开发者可以打包他们的应用以及依赖包到一个可移植的容器中，然后发布到任何流行的 Linux 或 Windows 机器上。',
+    category: '容器化',
+    type: 'Freemium',
+    icon: '🐳',
+    website: 'https://www.docker.com/',
+    github: 'https://github.com/docker',
+    documentation: 'https://docs.docker.com/',
+    license: 'Apache 2.0',
+    language: 'Go',
+    tags: ['容器', '虚拟化', '微服务', 'DevOps'],
+    features: [
+      '轻量级容器化',
+      '跨平台兼容性',
+      'Docker Hub 镜像仓库',
+      'Dockerfile 自动化构建',
+      'Docker Compose 多容器管理'
+    ],
+    isPopular: true,
+    stars: 68.5,
+    forks: 18.7,
+    downloads: 13.2,
+    contributors: 2800,
+    createdAt: '2013-01-18',
+    updatedAt: '2024-01-22'
+  },
+  {
+    id: 'kubernetes',
+    name: 'Kubernetes',
+    description: '开源的容器编排平台，用于自动化部署、扩展和管理应用',
+    category: '容器化',
+    type: 'Open Source',
+    icon: '☸️',
+    website: 'https://kubernetes.io/',
+    github: 'https://github.com/kubernetes/kubernetes',
+    documentation: 'https://kubernetes.io/docs/',
+    license: 'Apache 2.0',
+    language: 'Go',
+    tags: ['编排', '容器', '微服务', '云原生'],
+    isPopular: true,
+    stars: 106.2,
+    forks: 38.5,
+    contributors: 3000,
+    updatedAt: '2024-01-21'
+  },
+  
+  // Monitoring Tools
+  {
+    id: 'prometheus',
+    name: 'Prometheus',
+    description: '开源的监控和告警工具包，适用于记录时间序列数据',
+    category: '监控与日志',
+    type: 'Open Source',
+    icon: '🔥',
+    website: 'https://prometheus.io/',
+    github: 'https://github.com/prometheus/prometheus',
+    documentation: 'https://prometheus.io/docs/',
+    license: 'Apache 2.0',
+    language: 'Go',
+    tags: ['监控', '告警', '时间序列', '指标'],
+    isPopular: true,
+    stars: 52.8,
+    forks: 8.9,
+    contributors: 1800,
+    updatedAt: '2024-01-19'
+  },
+  {
+    id: 'grafana',
+    name: 'Grafana',
+    description: '开源的可视化和分析平台，支持多种数据源',
+    category: '监控与日志',
+    type: 'Open Source',
+    icon: '📈',
+    website: 'https://grafana.com/',
+    github: 'https://github.com/grafana/grafana',
+    documentation: 'https://grafana.com/docs/',
+    license: 'AGPL-3.0',
+    language: 'TypeScript',
+    tags: ['可视化', '仪表板', '分析', '监控'],
+    isPopular: true,
+    stars: 60.1,
+    forks: 11.7,
+    contributors: 1500,
+    updatedAt: '2024-01-20'
+  },
+  
+  // Infrastructure Tools
+  {
+    id: 'terraform',
+    name: 'Terraform',
+    description: '开源的基础设施即代码工具，用于安全高效地构建、更改和版本化基础设施',
+    category: '基础设施',
+    type: 'Open Source',
+    icon: '🏢',
+    website: 'https://www.terraform.io/',
+    github: 'https://github.com/hashicorp/terraform',
+    documentation: 'https://www.terraform.io/docs/',
+    license: 'MPL-2.0',
+    language: 'Go',
+    tags: ['IaC', '基础设施', '云', '自动化'],
+    isPopular: true,
+    stars: 41.2,
+    forks: 9.4,
+    contributors: 1600,
+    updatedAt: '2024-01-21'
+  },
+  {
+    id: 'ansible',
+    name: 'Ansible',
+    description: '简单、强大、无代理的自动化工具',
+    category: '基础设施',
+    type: 'Open Source',
+    icon: '🔧',
+    website: 'https://www.ansible.com/',
+    github: 'https://github.com/ansible/ansible',
+    documentation: 'https://docs.ansible.com/',
+    license: 'GPL-3.0',
+    language: 'Python',
+    tags: ['配置管理', '自动化', '部署', 'DevOps'],
+    isPopular: true,
+    stars: 61.5,
+    forks: 23.8,
+    contributors: 5000,
+    updatedAt: '2024-01-18'
+  }
+]
+
+// Featured tools for homepage
+export const featuredTools = allTools.filter(tool => tool.isPopular).slice(0, 9)
