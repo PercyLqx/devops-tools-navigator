@@ -12,6 +12,7 @@ on:
         description: '强制检查所有 PR'
         required: false
         default: 'false'
+        type: boolean
   
   # PR 事件触发
   pull_request:
@@ -30,7 +31,7 @@ jobs:
   monitor-prs:
     name: 监控 PR 流水线状态
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
     - name: 🛒 检出代码
@@ -44,17 +45,23 @@ jobs:
       with:
         node-version: '20.x'
 
-    - name: 📦 安装依赖
+    - name: 📦 安装监控脚本依赖
+      working-directory: .github/scripts
       run: |
-        npm install @actions/core @actions/github axios
+        if [ -f "package.json" ]; then
+          npm install --no-package-lock
+        else
+          npm install @actions/core@^1.10.1 @actions/github@^6.0.0 axios@^1.6.0 --no-save
+        fi
 
     - name: 🔍 执行 PR 状态监控
       id: monitor
-      run: node .github/scripts/pr-monitor.js
+      working-directory: .github/scripts
+      run: node pr-monitor.js
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         REPOSITORY: ${{ github.repository }}
-        FORCE_CHECK: ${{ github.event.inputs.force_check || 'false' }}
+        FORCE_CHECK: ${{ github.event.inputs.force_check || false }}
         
     - name: 📊 输出监控结果
       run: |
@@ -65,12 +72,27 @@ jobs:
         echo "创建的 Issue: ${{ steps.monitor.outputs.created_issues }}"
         echo "关闭的 Issue: ${{ steps.monitor.outputs.closed_issues }}"
 
+    - name: 📋 添加作业摘要
+      run: |
+        echo "## 📊 PR 监控报告" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| 指标 | 数量 |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+        echo "| 检查的 PR | ${{ steps.monitor.outputs.checked_prs }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 失败的流水线 | ${{ steps.monitor.outputs.failed_pipelines }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 成功的流水线 | ${{ steps.monitor.outputs.successful_pipelines }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 创建的 Issue | ${{ steps.monitor.outputs.created_issues }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 关闭的 Issue | ${{ steps.monitor.outputs.closed_issues }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⏰ 监控时间: $(date)" >> $GITHUB_STEP_SUMMARY
+
   # 清理过期数据
   cleanup:
     name: 清理过期监控数据
     runs-on: ubuntu-latest
     needs: monitor-prs
-    if: always() && (github.event_name == 'schedule' || github.event.inputs.force_check == 'true')
+    if: always() && (github.event_name == 'schedule' || github.event.inputs.force_check == true)
+    timeout-minutes: 10
     
     steps:
     - name: 🛒 检出代码
@@ -83,12 +105,26 @@ jobs:
       with:
         node-version: '20.x'
 
-    - name: 📦 安装依赖
+    - name: 📦 安装清理脚本依赖
+      working-directory: .github/scripts
       run: |
-        npm install @actions/core @actions/github
+        if [ -f "package.json" ]; then
+          npm install --no-package-lock
+        else
+          npm install @actions/core@^1.10.1 @actions/github@^6.0.0 --no-save
+        fi
 
     - name: 🧹 清理过期数据
-      run: node .github/scripts/cleanup-monitor-data.js
+      id: cleanup
+      working-directory: .github/scripts
+      run: node cleanup-monitor-data.js
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         REPOSITORY: ${{ github.repository }}
+
+    - name: 📊 输出清理结果
+      run: |
+        echo "🧹 数据清理完成"
+        echo "处理的项目: ${{ steps.cleanup.outputs.processed_items }}"
+        echo "关闭的 Issue: ${{ steps.cleanup.outputs.closed_issues }}"
+        echo "删除的评论: ${{ steps.cleanup.outputs.deleted_comments }}"
